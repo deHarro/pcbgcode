@@ -13,3 +13,4 @@ docs/pcbgcode.toc
 *.b#?
 *.s#?
 **/optimize_me.txt
+*.bak
