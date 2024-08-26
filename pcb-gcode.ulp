@@ -721,7 +721,7 @@ void device_draw(int x1, int y1, int x2, int y2, int state, real z_down_or_radiu
             m_arc_center_y = ry1;
             break;
 
-		case ST_ARC:
+	case ST_ARC:
             sprintf(str, "ARC: rx1=%f, ry1=%f, rx2=%f, ry2=%f, cx=%f, cy=%f", rx1, ry1, rx2, ry2, m_arc_center_x, m_arc_center_y);
             comm(str);
             i_coord = m_arc_center_x - rx1;
@@ -737,7 +737,7 @@ void device_draw(int x1, int y1, int x2, int y2, int state, real z_down_or_radiu
             else {
                 fccwr(rx2, ry2, i_coord, j_coord, fr_xy);
             }
-			break;
+            break;
 
 //////////
 	}
