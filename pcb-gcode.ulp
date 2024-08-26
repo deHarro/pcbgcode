@@ -649,7 +649,7 @@ void device_draw(int x1, int y1, int x2, int y2, int state, real z_down_or_radiu
 
 ////////// mlmSolutions 5 Feb 14
 
-            
+
         case ST_ARC_CENTER:
             sprintf(str, "ARC CENTER: rx1=%f, ry1=%f, rx2=%f, ry2=%f", rx1, ry1, rx2, ry2);
             comm(str);
