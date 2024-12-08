@@ -14,3 +14,8 @@ docs/pcbgcode.toc
 viewer/applet/data/optimize_me.txt
 viewer/**/optimize_me.txt
 *.b#*
+.suo
+*.sln
+*.vcxproj
+*.filters
+*.user
