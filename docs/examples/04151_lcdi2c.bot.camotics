@@ -4,31 +4,24 @@
       "resolution": 1,
       "tools": {
         "1": {
-          "units": "metric",
+          "units": "imperial",
           "shape": "cylindrical",
-          "length": 10,
-          "diameter": 0.5,
+          "length": 0.394077,
+          "diameter": 0.015,
           "description": ""
         },
         "2": {
-          "units": "metric",
+          "units": "imperial",
           "shape": "cylindrical",
-          "length": 10,
-          "diameter": 0.813,
+          "length": 0.393701,
+          "diameter": 0.032,
           "description": ""
         },
         "3": {
-          "units": "metric",
+          "units": "imperial",
           "shape": "cylindrical",
-          "length": 10,
-          "diameter": 1.01,
-          "description": ""
-        },
-        "4": {
-          "units": "metric",
-          "shape": "cylindrical",
-          "length": 10,
-          "diameter": 2.16,
+          "length": 0.393701,
+          "diameter": 0.125,
           "description": ""
         }
       },
@@ -36,13 +29,11 @@
         "automatic": true,
         "margin": 5,
         "bounds": {
-          "min": [-74.58975, -2.137178, -3.9669],
-          "max": [3.97775, 35.687818, 0]
+          "min": [-1.72847, -1.25178, -2.95344],
+          "max": [27.35707, 17.34659, 0]
         }
       },
       "files": [
-        "04151_lcdi2c.bot.etch.tap",
-        "04151_lcdi2c.bot.drill.tap",
-        "04151_lcdi2c.bot.mill.tap"
+        "drills.top.drill.tap"
       ]
     }

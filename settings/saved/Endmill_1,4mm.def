@@ -1,0 +1,48 @@
+//
+// Default values for generating gcode from a PCB.
+//
+// These settings were last changed with pcb-gcode-setup: 26.08.2024 15:29
+//
+//
+// Changes you make in this file will be overwritten if you use pcb-gcode-setup.
+//
+
+int SINGLE_PASS = NO;
+real ISO_MIN = 0.050000;
+real ISO_MAX = 5.000000;
+real ISO_STEP = 1.200000;
+
+int GENERATE_TOP_OUTLINES = NO;
+int GENERATE_TOP_DRILL = NO;
+int GENERATE_TOP_FILL = NO;
+int GENERATE_TOP_STENCIL = NO;
+
+int GENERATE_BOTTOM_OUTLINES = YES;
+int GENERATE_BOTTOM_DRILL = YES;
+int GENERATE_BOTTOM_FILL = NO;
+int GENERATE_BOTTOM_STENCIL = NO;
+
+int MIRROR_BOTTOM = NO;
+int SIMPLE_DRILL_CODE = YES;
+
+int GENERATE_MILLING = YES;
+int CLIMB_MILLING = NO;
+
+int GENERATE_TEXT = YES;
+
+int SPOT_DRILL = YES;
+real SPOT_DRILL_DEPTH = -0.200000;
+
+int DO_TOOL_CHANGE_WITH_ZERO_STEP = YES;
+
+int FLIP_BOARD_IN_Y = NO;
+
+//int OUTPUT_UNITS = U_MICRONS;
+int OUTPUT_UNITS = U_MILLIMETERS;
+//int OUTPUT_UNITS = U_MILS;
+//int OUTPUT_UNITS = U_INCHES;
+// int HOLE_MILL_STYLE = HOLE_MILL_CONCENTRIC;
+int HOLE_MILL_STYLE = HOLE_MILL_HELICAL;
+string NC_OPERATOR_MESSAGE = "";
+int PREVIEW_WINDOW_WIDTH = 1600;
+int PREVIEW_WINDOW_HEIGHT = 1000;
