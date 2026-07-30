@@ -19,3 +19,8 @@ viewer/**/optimize_me.txt
 *.vcxproj
 *.filters
 *.user
+*.b#?
+*.s#?
+**/optimize_me.txt
+*.bak
+.vs/pcbgcode/v16/.suo

@@ -181,7 +181,12 @@ void convert_units(int new_units)
     FEED_RATE_STENCIL_Z = conv_units_from_to(FEED_RATE_STENCIL_Z, m_current_units, new_units);
     STENCIL_TOOL_SIZE = conv_units_from_to(STENCIL_TOOL_SIZE, m_current_units, new_units);
     EPSILON = conv_units_from_to(EPSILON, m_current_units, new_units);
-
+    MILLING_TOOL_SIZE = conv_units_from_to(MILLING_TOOL_SIZE, m_current_units, new_units);
+    PAD_CLEAR_DEPTH = conv_units_from_to(PAD_CLEAR_DEPTH, m_current_units, new_units);         // NEU
+    PAD_CLEAR_TOOL_SIZE = conv_units_from_to(PAD_CLEAR_TOOL_SIZE, m_current_units, new_units); // NEU
+    FEED_RATE_PAD_CLEAR_XY = conv_units_from_to(FEED_RATE_PAD_CLEAR_XY, m_current_units, new_units); // NEU
+    FEED_RATE_PAD_CLEAR_Z = conv_units_from_to(FEED_RATE_PAD_CLEAR_Z, m_current_units, new_units);   // NEU
+    
     set_uom_suffix(OUTPUT_UNITS);
     dlgRedisplay();
     m_current_units = new_units;
@@ -327,12 +332,16 @@ void save_pcb_defaults()
         write_bool_param("GENERATE_TOP_DRILL", GENERATE_TOP_DRILL);
         write_bool_param("GENERATE_TOP_FILL", GENERATE_TOP_FILL);
         write_bool_param("GENERATE_TOP_STENCIL", GENERATE_TOP_STENCIL);
+        write_bool_param("GENERATE_TOP_PAD_CLEAR", GENERATE_TOP_PAD_CLEAR); // NEU
         printf("\n");
 
         write_bool_param("GENERATE_BOTTOM_OUTLINES", GENERATE_BOTTOM_OUTLINES);
         write_bool_param("GENERATE_BOTTOM_DRILL", GENERATE_BOTTOM_DRILL);
         write_bool_param("GENERATE_BOTTOM_FILL", GENERATE_BOTTOM_FILL);
         write_bool_param("GENERATE_BOTTOM_STENCIL", GENERATE_BOTTOM_STENCIL);
+        write_bool_param("GENERATE_BOTTOM_PAD_CLEAR", GENERATE_BOTTOM_PAD_CLEAR); // NEU
+        write_real_param("PAD_CLEAR_DEPTH", PAD_CLEAR_DEPTH);         // NEU
+        write_real_param("PAD_CLEAR_TOOL_SIZE", PAD_CLEAR_TOOL_SIZE); // NEU
         printf("\n");
 
         write_bool_param("MIRROR_BOTTOM", MIRROR_BOTTOM);
@@ -430,7 +439,11 @@ void save_pcb_machine()
     write_real_param("Y_OFFSET",Y_OFFSET);
     write_real_param("X_HOME", X_HOME);
     write_real_param("Y_HOME",Y_HOME);
-	  write_real_param("EPSILON", EPSILON);
+	write_real_param("EPSILON", EPSILON);
+    write_real_param("MILLING_TOOL_SIZE", MILLING_TOOL_SIZE);
+    write_real_param("FEED_RATE_PAD_CLEAR_XY", FEED_RATE_PAD_CLEAR_XY); // NEU
+    write_real_param("FEED_RATE_PAD_CLEAR_Z", FEED_RATE_PAD_CLEAR_Z);   // NEU
+    write_real_param("SPINDLE_PAD_CLEAR_RPM", SPINDLE_PAD_CLEAR_RPM);   // NEU
   }
 }
 
@@ -485,6 +498,7 @@ void save_pcb_gcode_options()
     write_string_param("MILL_FILE_NAME",  MILL_FILE_NAME);
     write_string_param("TEXT_FILE_NAME",  TEXT_FILE_NAME);
     write_string_param("STENCIL_FILE_NAME",  STENCIL_FILE_NAME);
+    write_string_param("PAD_CLEAR_FILE_NAME", PAD_CLEAR_FILE_NAME); // NEU
     write_string_param("TOP_FILE_NAME",   TOP_FILE_NAME);
     write_string_param("BOT_FILE_NAME",   BOT_FILE_NAME);
     write_string_param("DEFAULT_EXTENSION", DEFAULT_EXTENSION);
@@ -550,19 +564,17 @@ int Result = dlgDialog("pcb-gcode Setup") {
           dlgCheckBox("Generate top outlines", GENERATE_TOP_OUTLINES);
           dlgCheckBox("Generate top drills  ", GENERATE_TOP_DRILL);
           dlgCheckBox("Generate top stencil ", GENERATE_TOP_STENCIL);
+          dlgCheckBox("Generate top pad-clear", GENERATE_TOP_PAD_CLEAR); // NEU
         }
         dlgStretch(1);
       }
       dlgVBoxLayout {
         dlgGroup("Bottom Side") {
-          dlgCheckBox("Generate bottom outlines", 
-            GENERATE_BOTTOM_OUTLINES);
-          dlgCheckBox("Generate bottom drills  ", 
-            GENERATE_BOTTOM_DRILL);
-          dlgCheckBox("Generate bottom stencil ",
-            GENERATE_BOTTOM_STENCIL);
-          dlgCheckBox("Mirror ", 
-            MIRROR_BOTTOM);
+          dlgCheckBox("Generate bottom outlines",GENERATE_BOTTOM_OUTLINES);
+          dlgCheckBox("Generate bottom drills  ", GENERATE_BOTTOM_DRILL);
+          dlgCheckBox("Generate bottom stencil ",GENERATE_BOTTOM_STENCIL);
+          dlgCheckBox("Generate bottom pad-clear", GENERATE_BOTTOM_PAD_CLEAR); // NEU
+          dlgCheckBox("Mirror ", MIRROR_BOTTOM);
         }
         dlgStretch(1);
         dlgLabel("<img src='" + g_path + "/docs/images/isolation_settings_300.gif' width='300'/>");
@@ -589,15 +601,17 @@ int Result = dlgDialog("pcb-gcode Setup") {
                 dlgCell(1, 2) dlgRadioButton("Helical", HOLE_MILL_STYLE);
                 dlgCell(2, 0) dlgLabel("Further setup for hole milling required in your .drl file");
 
+                /* make generation of Text for Top and Bottom side selectable independent from another */
                 dlgCell(3, 0) dlgCheckBox("Generate text", GENERATE_TEXT);
                 dlgCell(3, 1) dlgLabel("Depth ");
                 dlgCell(3, 2) { dlgRealEdit(TEXT_DEPTH); dlgLabel(m_uom_suffix, YES); }
+                // dlgCell(4, 0) dlgCheckBox("Generate Bottom text", GENERATE_TEXT);
                 
-                dlgCell(4, 0) dlgCheckBox("Spot drill holes", SPOT_DRILL);
-                dlgCell(4, 1) dlgLabel("Depth");
-                dlgCell(4, 2) { dlgRealEdit(SPOT_DRILL_DEPTH);  dlgLabel(m_uom_suffix, YES); }
+                dlgCell(5, 0) dlgCheckBox("Spot drill holes", SPOT_DRILL);
+                dlgCell(5, 1) dlgLabel("Depth");
+                dlgCell(5, 2) { dlgRealEdit(SPOT_DRILL_DEPTH);  dlgLabel(m_uom_suffix, YES); }
                 
-                dlgCell(5, 0) dlgCheckBox("Prefer climb", CLIMB_MILLING);
+                dlgCell(6, 0) dlgCheckBox("Prefer climb", CLIMB_MILLING);
                  
             }
             dlgGridLayout {
@@ -690,9 +704,15 @@ int Result = dlgDialog("pcb-gcode Setup") {
 						dlgLabel(m_uom_suffix, YES); 
 					}
 					dlgCell(4, 0) dlgLabel("Drill Dwell ");
-					dlgCell(4, 1) { dlgRealEdit(DRILL_DWELL, 0); // DO NOT CONVERT
-					  dlgLabel("secs");
-				  }
+					dlgCell(4, 1) { 
+                        dlgRealEdit(DRILL_DWELL, 0); // DO NOT CONVERT
+                        dlgLabel("secs");
+                    }                      
+                    dlgCell(5, 0) dlgLabel("Pad-Clear Depth "); // NEU
+					dlgCell(5, 1) { 
+                        dlgRealEdit(PAD_CLEAR_DEPTH); 
+                        dlgLabel(m_uom_suffix, YES); 
+                    } // NEU				  
 				}
 			}
 			dlgGroup("Tool Change") {
@@ -751,8 +771,8 @@ int Result = dlgDialog("pcb-gcode Setup") {
 					dlgCell(1, 2) dlgRealEdit(FEED_RATE_ETCH_Z);
 					dlgCell(1, 3) dlgRealEdit(SPINDLE_ETCH_RPM); // DO NOT CONVERT
 					dlgCell(1, 4) dlgHBoxLayout { dlgRealEdit(TOOL_SIZE); 
-            dlgLabel(m_uom_suffix, YES); 
-          }
+                        dlgLabel(m_uom_suffix, YES); 
+                      }
           
 
 					dlgCell(2, 0) dlgLabel("Drill");
@@ -763,7 +783,9 @@ int Result = dlgDialog("pcb-gcode Setup") {
 					dlgCell(3, 1) dlgRealEdit(FEED_RATE_MILL_XY);
 					dlgCell(3, 2) dlgRealEdit(FEED_RATE_MILL_Z);
 					dlgCell(3, 3) dlgRealEdit(SPINDLE_MILL_RPM); // DO NOT CONVERT
-
+                    dlgCell(3, 4) dlgHBoxLayout { dlgRealEdit(MILLING_TOOL_SIZE); 
+                        dlgLabel(m_uom_suffix, YES); 
+                      }
 					dlgCell(4, 0) dlgLabel("Text");
 					dlgCell(4, 1) dlgRealEdit(FEED_RATE_TEXT_XY);
 					dlgCell(4, 2) dlgRealEdit(FEED_RATE_TEXT_Z);
@@ -774,8 +796,16 @@ int Result = dlgDialog("pcb-gcode Setup") {
 					dlgCell(5, 2) dlgRealEdit(FEED_RATE_STENCIL_Z);
 					dlgCell(5, 3) dlgRealEdit(SPINDLE_STENCIL_RPM); // DO NOT CONVERT
 					dlgCell(5, 4) dlgHBoxLayout { dlgRealEdit(STENCIL_TOOL_SIZE); 
-            dlgLabel(m_uom_suffix, YES); 
-          }
+                        dlgLabel(m_uom_suffix, YES); 
+                        }
+                        
+                    dlgCell(6, 0) dlgLabel("Pad-Clear"); // NEU
+					dlgCell(6, 1) dlgRealEdit(FEED_RATE_PAD_CLEAR_XY); // NEU
+					dlgCell(6, 2) dlgRealEdit(FEED_RATE_PAD_CLEAR_Z);  // NEU
+					dlgCell(6, 3) dlgRealEdit(SPINDLE_PAD_CLEAR_RPM);  // NEU
+					dlgCell(6, 4) dlgHBoxLayout { dlgRealEdit(PAD_CLEAR_TOOL_SIZE); 
+                        dlgLabel(m_uom_suffix, YES); 
+                        } // NEU
 				}
 				dlgStretch(1);
 			}
@@ -911,6 +941,9 @@ int Result = dlgDialog("pcb-gcode Setup") {
           }
           dlgCell(1, 4) { dlgLabel("Word for 'stencil'");
             dlgStringEdit(STENCIL_FILE_NAME); dlgStretch(1);
+          }
+          dlgCell(2, 0) { dlgLabel("Word for 'pad-clear'"); // NEU
+            dlgStringEdit(PAD_CLEAR_FILE_NAME);             // NEU
           }
         }
         dlgHBoxLayout {

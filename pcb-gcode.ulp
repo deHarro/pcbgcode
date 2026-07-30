@@ -80,8 +80,6 @@ int m_layer;
 string g_cmd;
 string g_cmd_temp;
 
-
-
 ////////// mlmSolutions added 29 Jan 14
 
 real m_v_x[], m_v_y[], m_v_rad[];
@@ -362,8 +360,7 @@ void output_drill_file(int which_side)
 		last_size = -1;
 		output(get_filename(), FILEMODE_WRITE_TEXT) {
 			output_file_preamble();
-
-			//
+            //
 			// Create a tool table at the beginning of the file.
 			//
             comm("Rack file: " + elided_path(m_rack_file_name, 30));
@@ -721,7 +718,7 @@ void device_draw(int x1, int y1, int x2, int y2, int state, real z_down_or_radiu
             m_arc_center_y = ry1;
             break;
 
-	case ST_ARC:
+		case ST_ARC:
             sprintf(str, "ARC: rx1=%f, ry1=%f, rx2=%f, ry2=%f, cx=%f, cy=%f", rx1, ry1, rx2, ry2, m_arc_center_x, m_arc_center_y);
             comm(str);
             i_coord = m_arc_center_x - rx1;
@@ -1006,7 +1003,27 @@ void output_mill_code()
 			m_v_n =1;
 
 			// Process all the wires.
-			B.wires(W) W.pieces(P) {
+            // --- Variablen für die Board-Grenzen ---
+            real min_x = 2147483647.0, max_x = -2147483648.0;
+            real min_y = 2147483647.0, max_y = -2147483648.0;
+            int has_dimension = 0;
+
+            // Process all the wires.
+            B.wires(W) W.pieces(P) {
+                if (P.layer == 20) {
+                    // Min/Max für die Bounding Box (hilfreich zur Kontrolle)
+                    if (P.x1 < min_x) min_x = P.x1; if (P.x2 < min_x) min_x = P.x2;
+                    if (P.x1 > max_x) max_x = P.x1; if (P.x2 > max_x) max_x = P.x2;
+                    if (P.y1 < min_y) min_y = P.y1; if (P.y2 < min_y) min_y = P.y2;
+                    if (P.y1 > max_y) max_y = P.y1; if (P.y2 > max_y) max_y = P.y2;
+
+                    // Koordinaten in die Arrays schreiben
+                    m_v_x[m_v_n] = P.x1; m_v_y[m_v_n] = P.y1; m_v_n++;
+                    m_v_x[m_v_n] = P.x2; m_v_y[m_v_n] = P.y2; m_v_n++;
+                    
+                    has_dimension = 1;
+                }
+                
 				// If this is a mill layer, check if we should continue
 				// a line, or start a new one.
 				if (P.layer == MILL_LAYER) {
@@ -1102,7 +1119,7 @@ void output_mill_code()
 				// if (P.layer == MILL_LAYER)
 			} 
 			// pieces
-
+            
 ////////// mlmSolutions added 5 Feb 14 yyyy
 
 			//Optimises the path using nearest neighbour
@@ -1139,10 +1156,157 @@ void output_mill_code()
 
 			// Generate the gcode
 			// sort into step order
-			sort(m_v_n, m_v_index, m_v_step);
+            sort(m_v_n, m_v_index, m_v_step);
 			m_tool_x = X_HOME; m_tool_y = Y_HOME;
 			m_wire_start = true;	//the vertices are stored in pairs. X1Y1 first then X2Y2
 			first_run = true;
+            
+            
+            // --- EIGENE ROUTINE FÜR AUSSENKANTE (Layer 20) ---
+//////////
+// --- V11: BEWÄHRTER STAND (RECHTECK & PARADIGMA OK) ---
+// --- V11.1: BEWÄHRTER STAND + NULL-WEICHE ---
+            if (has_dimension) {
+                // Wir erlauben jetzt 0. Wenn 0, dann bleibt f_off 0.
+                real tool_dia_val = MILLING_TOOL_SIZE; 
+                real f_off = 0;
+                if (tool_dia_val > 0) {
+                    f_off = user_to_internals(tool_dia_val / 2.0);
+                }
+                
+                int total_segs = (m_v_n - 1) / 2;
+                real sx[], sy[], ex[], ey[]; 
+                int used[]; 
+                
+                for (int s = 0; s < total_segs; s++) {
+                    sx[s] = m_v_x[(s*2)+1]; sy[s] = m_v_y[(s*2)+1];
+                    ex[s] = m_v_x[(s*2)+2]; ey[s] = m_v_y[(s*2)+2];
+                    used[s] = 0;
+                }
+
+                real sort_x1[], sort_y1[], sort_x2[], sort_y2[];
+                int sorted_count = 0;
+                used[0] = 1;
+                sort_x1[0] = sx[0]; sort_y1[0] = sy[0]; sort_x2[0] = ex[0]; sort_y2[0] = ey[0];
+                sorted_count = 1;
+
+                // 1. Sortieren
+                while (sorted_count < total_segs) {
+                    real last_x = sort_x2[sorted_count-1];
+                    real last_y = sort_y2[sorted_count-1];
+                    int best_next = -1; int flip = 0; real min_dist = 1e10;
+                    for (int cand = 0; cand < total_segs; cand++) {
+                        if (used[cand]) continue;
+                        real d1 = sqrt(pow(last_x-sx[cand],2) + pow(last_y-sy[cand],2));
+                        if (d1 < min_dist) { min_dist = d1; best_next = cand; flip = 0; }
+                        real d2 = sqrt(pow(last_x-ex[cand],2) + pow(last_y-ey[cand],2));
+                        if (d2 < min_dist) { min_dist = d2; best_next = cand; flip = 1; }
+                    }
+                    if (best_next != -1) {
+                        used[best_next] = 1;
+                        if (flip) {
+                            sort_x1[sorted_count] = ex[best_next]; sort_y1[sorted_count] = ey[best_next];
+                            sort_x2[sorted_count] = sx[best_next]; sort_y2[sorted_count] = sy[best_next];
+                        } else {
+                            sort_x1[sorted_count] = sx[best_next]; sort_y1[sorted_count] = sy[best_next];
+                            sort_x2[sorted_count] = ex[best_next]; sort_y2[sorted_count] = ey[best_next];
+                        }
+                        sorted_count++;
+                    } else break;
+                }
+                
+                // --- 1.a DXF EXPORT (NUR WENN OFFSET 0 IST) ---
+                if (f_off <= 0) {
+                    // --- MODUS A: DXF EXPORT (KORREKTER SKALIERUNGSFAKTOR) ---
+                    string dxf_name = m_file_name + "_contour.dxf";
+                    output(dxf_name, "wt") {
+                        printf("  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1009\n");
+                        printf("  9\n$INSUNITS\n 70\n4\n"); // 4 = mm
+                        printf("  9\n$MEASUREMENT\n 70\n1\n");
+                        printf("  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n");
+
+                        for (int d = 0; d < sorted_count; d++) {
+                            printf("  0\nLINE\n  8\n0\n"); 
+                            // Wir teilen durch 320000.0, um von Eagle-Internal auf mm zu kommen
+                            printf(" 10\n%f\n 20\n%f\n 30\n0.0\n", sort_x1[d] / 320000.0, sort_y1[d] / 320000.0);
+                            printf(" 11\n%f\n 21\n%f\n 31\n0.0\n", sort_x2[d] / 320000.0, sort_y2[d] / 320000.0);
+                        }
+                        printf("  0\nENDSEC\n  0\nEOF\n");
+                    }
+                }
+                else {
+                // --- MODUS B: NUR G-CODE MIT OFFSET (INTERN) ---                
+                // 2. Richtungs-Detektion (Invertierte Logik nach Test-Erfolg)
+                int needs_reverse = 0;
+                real cp = 0;
+                for (int i = 0; i < sorted_count - 1; i++) {
+                    real dx1 = sort_x2[i] - sort_x1[i];
+                    real dy1 = sort_y2[i] - sort_y1[i];
+                    real dx2 = sort_x2[i+1] - sort_x1[i+1];
+                    real dy2 = sort_y2[i+1] - sort_y1[i+1];
+                    cp = (dx1 * dy2) - (dy1 * dx2);
+                    if (abs(cp) > 0.001) break; 
+                }
+                if (abs(cp) > 0.001) {
+                    if (g_side == 1 && cp > 0) needs_reverse = 1; 
+                    if (g_side == 0 && cp < 0) needs_reverse = 1; 
+                }
+                if (needs_reverse) {
+                    for (int r = 0; r < sorted_count / 2; r++) {
+                        int alt = sorted_count - 1 - r;
+                        real tx1 = sort_x1[r]; real ty1 = sort_y1[r];
+                        real tx2 = sort_x2[r]; real ty2 = sort_y2[r];
+                        sort_x1[r] = sort_x2[alt]; sort_y1[r] = sort_y2[alt];
+                        sort_x2[r] = sort_x1[alt]; sort_y2[r] = sort_y1[alt];
+                        sort_x1[alt] = tx2; sort_y1[alt] = ty2;
+                        sort_x2[alt] = tx1; sort_y2[alt] = ty1;
+                    }
+                }
+
+                // 3. Normalen (NUR berechnen, wenn f_off > 0)
+                real nx[], ny[];
+                for (int n = 0; n < sorted_count; n++) {
+                    real dx = sort_x2[n] - sort_x1[n];
+                    real dy = sort_y2[n] - sort_y1[n];
+                    real l = sqrt(dx*dx + dy*dy);
+                    if (l > 0) {
+                        if (g_side == 1) { nx[n] = -dy / l; ny[n] =  dx / l; } 
+                        else             { nx[n] =  dy / l; ny[n] = -dx / l; }
+                    }
+                }
+
+                // 4. Zeichnen
+                for (int j = 0; j < sorted_count; j++) {
+                    real x1_out = sort_x1[j]; real y1_out = sort_y1[j];
+                    real x2_out = sort_x2[j]; real y2_out = sort_y2[j];
+
+                    // Miter-Joints nur berechnen, wenn wir einen Offset haben
+                    if (f_off > 0) {
+                        int p = (j == 0) ? sorted_count - 1 : j - 1;
+                        int n = (j == sorted_count - 1) ? 0 : j + 1;
+                        real m1x = nx[p] + nx[j]; real m1y = ny[p] + ny[j];
+                        real s1 = (m1x*m1x + m1y*m1y > 0.01) ? (2.0 / (m1x*m1x + m1y*m1y)) : 1.0;
+                        if (s1 > 2.5) s1 = 2.5;
+                        real m2x = nx[j] + nx[n]; real m2y = ny[j] + ny[n];
+                        real s2 = (m2x*m2x + m2y*m2y > 0.01) ? (2.0 / (m2x*m2x + m2y*m2y)) : 1.0;
+                        if (s2 > 2.5) s2 = 2.5;
+
+                        x1_out += m1x * s1 * f_off; y1_out += m1y * s1 * f_off;
+                        x2_out += m2x * s2 * f_off; y2_out += m2y * s2 * f_off;
+                    }
+
+                    device_draw(x1_out, y1_out, x2_out, y2_out,
+                                (j==0) ? ST_START_LINE : ST_CONTINUE_LINE, 
+                                MILLING_DEPTH, FEED_RATE_MILL_XY, FEED_RATE_MILL_Z);
+                }
+                
+                // Cleanup
+                m_v_n = 1; has_dimension = 0;
+            }
+        }
+                
+            
+//////////            
 			for (m_i=1; m_i<m_v_n; ++m_i){
 				m_j = m_v_index[m_i];
 				if (m_wire_start) {	//collect start vertices for next time
@@ -1152,11 +1316,11 @@ void output_mill_code()
 					if (((m_vx1 == m_tool_x) && (m_vy1 == m_tool_y)) && !first_run) {	//is it a continuation of the line
 						state = ST_CONTINUE_LINE; 
 						m_z_up = false;	//only needed as device_draw for arcs doesn't currently have a way of know if to continue
-					} else {
+                } else {
 						state = ST_START_LINE;
 						m_z_up = true;
 						first_run = false;
-					}
+                }
 					if (m_v_rad[m_j] > 0) {	//its an arc
 						if ((m_j % 2) == 0) m_cw = false; else m_cw = true;	//if its the end of an Eagle arc, m_cw=false
 						m_rad = m_v_rad[m_j]; if (abs(m_v_curve[m_j]) >180) m_rad = m_rad * -1;
@@ -1164,11 +1328,11 @@ void output_mill_code()
 						device_draw(m_vx1, m_vy1, m_vx2, m_vy2, ST_ARC, MILLING_DEPTH, FEED_RATE_MILL_XY, FEED_RATE_MILL_Z);
 					} else {	//its a line
 						device_draw(m_vx1, m_vy1, m_vx2, m_vy2, state, MILLING_DEPTH, FEED_RATE_MILL_XY, FEED_RATE_MILL_Z);
-					}
+                    }
 					m_tool_x = m_vx2; m_tool_y = m_vy2;	//save the tools current location
-				}
+                }
 				m_wire_start = !m_wire_start;
-			}
+            }
 
 //////////
 			output_file_postamble();
@@ -1254,20 +1418,28 @@ void write_outlines(int which_side, int task)
 
 	if (m_layer == MILL_LAYER || m_layer == TEXT_LAYER) {
 		if (which_side == MILL) {
-			g_side = TOP;
-			output_mill_code();
-			g_side = BOTTOM;
-			output_mill_code();
+			if (GENERATE_TOP_OUTLINES == YES || GENERATE_TOP_DRILL == YES) {
+				g_side = TOP;
+				output_mill_code();
+			}
+			if (GENERATE_BOTTOM_OUTLINES == YES || GENERATE_BOTTOM_DRILL == YES) {
+				g_side = BOTTOM;
+				output_mill_code();
+			}
 			return;
 		}
 		else {
-			g_side = TOP;
-			output_text_code();
-			g_side = BOTTOM;
-			output_text_code();
+			if (GENERATE_TOP_OUTLINES == YES || GENERATE_TOP_DRILL == YES) {
+				g_side = TOP;
+				output_text_code();
+			}
+			if (GENERATE_BOTTOM_OUTLINES == YES || GENERATE_BOTTOM_DRILL == YES) {
+				g_side = BOTTOM;
+				output_text_code();
+			}
 			return;
 		}
-	} 
+	}
 	// if m_layer == MILL_LAYER
 
 	output(get_filename(), mode) {
@@ -1607,6 +1779,149 @@ void write_stencil(int which_side, string suffix)
 	return PHASE_NAME[phase];
 }
  */
+
+// ==========================================
+// NEU: Pad-Clear Logik (Vollständig dynamisch über das Setup gesteuert)
+// ==========================================
+void write_pad_clear(int which_side)
+{
+    g_side = which_side;
+    m_layer = (which_side == TOP) ? TOP_LAYER : BOTTOM_LAYER;
+    int current_layer = (which_side == TOP) ? 1 : 16;
+ 
+    string side_word = (which_side == TOP) ? TOP_FILE_NAME : BOT_FILE_NAME;
+    string filepath = m_file_name + "." + side_word + "." + PAD_CLEAR_FILE_NAME + "." + DEFAULT_EXTENSION;
+
+    int pad_count = 0;
+
+    output(filepath, "wt") {
+        board(B) {
+            user_file_opened(filepath, "wt");
+            output_file_preamble();
+            
+            // 1. NUTZE DIE DYNAMISCHE DREHZAHL AUS DEM SETUP
+            begin_gcode(SPINDLE_PAD_CLEAR_RPM);
+            
+            // Holt die Werte live aus den Setup-Einstellungen und konvertiert sie passend
+            real tool_dia_u = user_to_internals(PAD_CLEAR_TOOL_SIZE);
+            real stepover_u = tool_dia_u / 2.0; // Überlappung ist immer 50% vom gewählten Werkzeug
+            real z_depth_uu = PAD_CLEAR_DEPTH;  // Wird direkt im gewählten Ausgabeformat übergeben
+
+            B.elements(E) {
+                E.package.contacts(C) {
+                    real pad_w_u = 0, pad_h_u = 0, corner_r_u = 0;
+                    real angle_rad = 0;
+                    int is_valid = 0;
+
+                    // 1. FORMEN ANALYSIEREN
+                    if (C.smd && C.smd.layer == current_layer) {
+                        pad_w_u = C.smd.dx;
+                        pad_h_u = C.smd.dy;
+                        angle_rad = C.smd.angle * PI / 180.0;
+                        real min_dim = (pad_w_u < pad_h_u) ? pad_w_u : pad_h_u;
+                        corner_r_u = (min_dim / 2.0) * (C.smd.roundness / 100.0);
+                        is_valid = 1;
+                    }
+                    else if (C.pad) {
+                        real dia = C.pad.diameter[current_layer];
+                        if (dia > 0) {
+                            pad_w_u = dia;
+                            pad_h_u = dia;
+                            corner_r_u = dia / 2.0;
+                            angle_rad = C.pad.angle * PI / 180.0;
+                            int shape = C.pad.shape[current_layer];
+                            if (shape == PAD_SHAPE_LONG || shape == PAD_SHAPE_OFFSET) {
+                                pad_w_u = dia * 2.0;
+                            } else if (shape == PAD_SHAPE_SQUARE) {
+                                corner_r_u = 0.0;
+                            }
+                            is_valid = 1;
+                        }
+                    }
+
+                    // 2. DYNAMISCHES ZICK-ZACK ROUTING (mit Rundungen)
+                    if (is_valid) {
+                        real safe_w_u = pad_w_u - tool_dia_u;
+                        real safe_h_u = pad_h_u - tool_dia_u;
+                        real safe_r_u = corner_r_u - (tool_dia_u / 2.0);
+                        if (safe_r_u < 0) safe_r_u = 0.0;
+
+                        if (safe_w_u >= 0 && safe_h_u >= 0) {
+                            if (pad_count == 0) { comm("--- Pad-Clear Toolpath ---"); }
+                            pad_count++;
+                            
+                            real start_y_u = -(safe_h_u / 2.0);
+                            real end_y_u   =  (safe_h_u / 2.0);
+                            real y_straight_limit_u = (safe_h_u / 2.0) - safe_r_u;
+                            real x_straight_limit_u = (safe_w_u / 2.0) - safe_r_u;
+
+                            int direction = 1;
+                            int first_point = 1;
+
+                            for (real y_u = start_y_u; y_u <= end_y_u + 1.0; y_u += stepover_u) {
+                                real current_start_x_u = 0;
+                                real current_end_x_u = 0;
+                                real abs_y_u = (y_u < 0) ? -y_u : y_u;
+
+                                if (abs_y_u <= y_straight_limit_u) {
+                                    current_start_x_u = -(safe_w_u / 2.0);
+                                    current_end_x_u   =  (safe_w_u / 2.0);
+                                } else {
+                                    real y_dist_u = abs_y_u - y_straight_limit_u;
+                                    real val = (safe_r_u * safe_r_u) - (y_dist_u * y_dist_u);
+                                    if (val < 0) val = 0.0;
+                                    real dx_circle_u = sqrt(val);
+                                    
+                                    current_start_x_u = -x_straight_limit_u - dx_circle_u;
+                                    current_end_x_u   =  x_straight_limit_u + dx_circle_u;
+                                }
+
+                                real px1_u = (direction == 1) ? current_end_x_u : current_start_x_u;
+                                real px2_u = (direction == 1) ? current_start_x_u : current_end_x_u;
+
+                                // --- Punkt 1 ---
+                                real rot_x1_u = (px1_u * cos(angle_rad)) - (y_u * sin(angle_rad));
+                                real rot_y1_u = (px1_u * sin(angle_rad)) + (y_u * cos(angle_rad));
+                                
+                                real final_x1 = scale_x(C.x + rot_x1_u);
+                                real final_y1 = scale_y(C.y + rot_y1_u);
+
+                                if (first_point) {
+                                    rz(DEFAULT_Z_UP);
+                                    rxy(final_x1, final_y1);
+                                    // Z-VORSCHUB AUS DEM SETUP
+                                    fzr(z_depth_uu, FEED_RATE_PAD_CLEAR_Z);
+                                    first_point = 0;
+                                } else {
+                                    // XY-VORSCHUB AUS DEM SETUP
+                                    fxyr(final_x1, final_y1, FEED_RATE_PAD_CLEAR_XY);                                }
+
+                                // --- Punkt 2 ---
+                                real rot_x2_u = (px2_u * cos(angle_rad)) - (y_u * sin(angle_rad));
+                                real rot_y2_u = (px2_u * sin(angle_rad)) + (y_u * cos(angle_rad));
+                                
+                                real final_x2 = scale_x(C.x + rot_x2_u);
+                                real final_y2 = scale_y(C.y + rot_y2_u);
+                                
+                                // XY-VORSCHUB AUS DEM SETUP
+                                fxyr(final_x2, final_y2, FEED_RATE_PAD_CLEAR_XY);
+                                
+                                direction = (direction == 1) ? 0 : 1;
+                            }
+                            rz(DEFAULT_Z_UP);
+                        }
+                    }
+                }
+            }
+            
+            output_file_postamble();
+            rz(DEFAULT_Z_UP);
+            end_gcode();
+        }
+        user_file_closing();
+    }
+}
+
 void gen_progress_menu(int phase)
 {
 	output(path_scr[0] + '/' + "source/pcb-gcode-prg.scr") {
@@ -1759,15 +2074,19 @@ switch (g_phase) {
      write_outlines(BOTTOM, FILL);
    break;
 
- case PH_TOP_STENCIL:
+case PH_TOP_STENCIL:
    if (GENERATE_TOP_STENCIL == YES)
      write_stencil(TOP, "tc");
+   if (GENERATE_TOP_PAD_CLEAR == YES)
+     write_pad_clear(TOP); // NEU
    break;
  case PH_BOTTOM_STENCIL:
    if (GENERATE_BOTTOM_STENCIL == YES)
      write_stencil(BOTTOM, "bc");
+   if (GENERATE_BOTTOM_PAD_CLEAR == YES)
+     write_pad_clear(BOTTOM); // NEU
    break;
-
+   
  case PH_TOP_DRILL:
    if (GENERATE_TOP_DRILL == YES)
      output_drill_file(TOP);
