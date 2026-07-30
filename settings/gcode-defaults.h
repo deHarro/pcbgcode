@@ -104,7 +104,8 @@ string DRILL_FIRST_HOLE = RAPID + "Z" + real_to_string(DEFAULT_Z_UP) + EOL
                                 + COMMENT_BEGIN + RELEASE_PLANE + " " + DWELL_TIME + COMMENT_END + EOL;
 
 string DRILL_HOLE =       RAPID + MOVE_XY + EOL 
-                          + FEED + "Z" + real_to_string(SPOT_DRILL_DEPTH) + EOL 
+                          // + FEED + "Z" + real_to_string(SPOT_DRILL_DEPTH) + EOL 
+                          + FEED + MOVE_Z + EOL    // korrigiert den Fehler "alle weiteren holes nur spot drilled"                      
                           + FEED + "Z" + real_to_string(DEFAULT_Z_UP) + EOL;
 
 //
