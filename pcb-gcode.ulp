@@ -1418,20 +1418,28 @@ void write_outlines(int which_side, int task)
 
 	if (m_layer == MILL_LAYER || m_layer == TEXT_LAYER) {
 		if (which_side == MILL) {
-			g_side = TOP;
-			output_mill_code();
-			g_side = BOTTOM;
-			output_mill_code();
+			if (GENERATE_TOP_OUTLINES == YES || GENERATE_TOP_DRILL == YES) {
+				g_side = TOP;
+				output_mill_code();
+			}
+			if (GENERATE_BOTTOM_OUTLINES == YES || GENERATE_BOTTOM_DRILL == YES) {
+				g_side = BOTTOM;
+				output_mill_code();
+			}
 			return;
 		}
 		else {
-			g_side = TOP;
-			output_text_code();
-			g_side = BOTTOM;
-			output_text_code();
+			if (GENERATE_TOP_OUTLINES == YES || GENERATE_TOP_DRILL == YES) {
+				g_side = TOP;
+				output_text_code();
+			}
+			if (GENERATE_BOTTOM_OUTLINES == YES || GENERATE_BOTTOM_DRILL == YES) {
+				g_side = BOTTOM;
+				output_text_code();
+			}
 			return;
 		}
-	} 
+	}
 	// if m_layer == MILL_LAYER
 
 	output(get_filename(), mode) {
