@@ -50,9 +50,8 @@ void save_settings_as()
   }
 }
 
-void load_settings(string file)
+int load_settings(string file)
 {
   file = filesetext(file, "");
-  filecopy(file + ".def", g_path + "/settings/pcb-defaults.h");
-  filecopy(file + ".mac", g_path + "/settings/pcb-machine.h");
+  return cc_prof_install(file + ".def", file + ".mac", ".before-profile-load.bak", YES);
 }

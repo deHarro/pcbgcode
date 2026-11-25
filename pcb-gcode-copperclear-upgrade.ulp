@@ -1,0 +1,14 @@
+// One-time upgrade of active headers, also works before the new settings exist.
+// Run from a board editor in EAGLE 7.7, before pcb-gcode or pcb-gcode-setup.
+#include "source/pcb-gcode.h"
+#include "source/filecopy.h"
+#include "source/copper-clear-profile.h"
+
+if (!board) { dlgMessageBox("Run this ULP from the board editor."); exit(1); }
+if (cc_prof_install(g_path+"/settings/pcb-defaults.h",
+                    g_path+"/settings/pcb-machine.h",
+                    ".before-copperclear-v02.bak",NO)) {
+    dlgMessageBox("Copper-Clear V1.0 settings ready.\n"+g_path+"\nYou can now run pcb-gcode-setup.\nExisting settings and stored profiles were preserved.");
+    exit(0);
+}
+exit(1);

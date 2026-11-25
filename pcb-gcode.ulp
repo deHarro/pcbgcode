@@ -1922,6 +1922,8 @@ void write_pad_clear(int which_side)
     }
 }
 
+#include "source/copper-clear.h"
+
 void gen_progress_menu(int phase)
 {
 	output(path_scr[0] + '/' + "source/pcb-gcode-prg.scr") {
@@ -1980,6 +1982,13 @@ if (argv[FILENAME_ARG] == "--help") {
 	exit(0);
 }
 
+// Copper-Clear V1.0: independent test, no normal generation phases.
+if (argv[FILENAME_ARG] == "--copper-clear-test") {
+    board(B) m_file_name = filesetext(B.name, "");
+    copper_clear_test();
+    exit(0);
+}
+
 // Be sure a filename is specified.
 if (argv[FILENAME_ARG]) {
 	m_file_name = argv[FILENAME_ARG];
@@ -2032,6 +2041,17 @@ get_current_profile();
 if (g_phase == PH_TOP_OUT_GEN && m_pass_num == 0 && program_is_setup() == NO)
 {
 	exit("run pcb-gcode-setup");
+}
+
+// Copper-Clear runs once, before the outline phases, independently of
+// the outline switches (next_phase can skip the stencil phases).
+if (g_phase == PH_TOP_OUT_GEN && m_pass_num == 0) {
+    int cc_saved_side=g_side;
+    if (GENERATE_TOP_COPPER_CLEAR == YES)
+        if (cc_write_side(TOP, 0) < 0) exit(1);
+    if (GENERATE_BOTTOM_COPPER_CLEAR == YES)
+        if (cc_write_side(BOTTOM, 0) < 0) exit(1);
+    g_side=cc_saved_side;
 }
 
 //

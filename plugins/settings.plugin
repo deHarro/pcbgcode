@@ -9,8 +9,8 @@ dlgGroup("Settings") {
     }
     dlgCell(++row, 0) dlgPushButton("Load") { 
       if(set_selection > -1) {
-        load_settings(set_files[set_selection]);
-        exit("run pcb-gcode-setup");
+        if (load_settings(set_files[set_selection]))
+          exit("run pcb-gcode-setup");
       }
     };
     dlgCell(row, 1) dlgPushButton("Save") {

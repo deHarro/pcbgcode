@@ -186,6 +186,10 @@ void convert_units(int new_units)
     PAD_CLEAR_TOOL_SIZE = conv_units_from_to(PAD_CLEAR_TOOL_SIZE, m_current_units, new_units); // NEU
     FEED_RATE_PAD_CLEAR_XY = conv_units_from_to(FEED_RATE_PAD_CLEAR_XY, m_current_units, new_units); // NEU
     FEED_RATE_PAD_CLEAR_Z = conv_units_from_to(FEED_RATE_PAD_CLEAR_Z, m_current_units, new_units);   // NEU
+    COPPER_CLEAR_DEPTH = conv_units_from_to(COPPER_CLEAR_DEPTH, m_current_units, new_units);
+    COPPER_CLEAR_TOOL_SIZE = conv_units_from_to(COPPER_CLEAR_TOOL_SIZE, m_current_units, new_units);
+    FEED_RATE_COPPER_CLEAR_XY = conv_units_from_to(FEED_RATE_COPPER_CLEAR_XY, m_current_units, new_units);
+    FEED_RATE_COPPER_CLEAR_Z = conv_units_from_to(FEED_RATE_COPPER_CLEAR_Z, m_current_units, new_units);
     
     set_uom_suffix(OUTPUT_UNITS);
     dlgRedisplay();
@@ -333,6 +337,7 @@ void save_pcb_defaults()
         write_bool_param("GENERATE_TOP_FILL", GENERATE_TOP_FILL);
         write_bool_param("GENERATE_TOP_STENCIL", GENERATE_TOP_STENCIL);
         write_bool_param("GENERATE_TOP_PAD_CLEAR", GENERATE_TOP_PAD_CLEAR); // NEU
+        write_bool_param("GENERATE_TOP_COPPER_CLEAR", GENERATE_TOP_COPPER_CLEAR);
         printf("\n");
 
         write_bool_param("GENERATE_BOTTOM_OUTLINES", GENERATE_BOTTOM_OUTLINES);
@@ -342,6 +347,10 @@ void save_pcb_defaults()
         write_bool_param("GENERATE_BOTTOM_PAD_CLEAR", GENERATE_BOTTOM_PAD_CLEAR); // NEU
         write_real_param("PAD_CLEAR_DEPTH", PAD_CLEAR_DEPTH);         // NEU
         write_real_param("PAD_CLEAR_TOOL_SIZE", PAD_CLEAR_TOOL_SIZE); // NEU
+        write_bool_param("GENERATE_BOTTOM_COPPER_CLEAR", GENERATE_BOTTOM_COPPER_CLEAR);
+        write_real_param("COPPER_CLEAR_DEPTH", COPPER_CLEAR_DEPTH);
+        write_real_param("COPPER_CLEAR_TOOL_SIZE", COPPER_CLEAR_TOOL_SIZE);
+        write_real_param("COPPER_CLEAR_OVERLAP", COPPER_CLEAR_OVERLAP);
         printf("\n");
 
         write_bool_param("MIRROR_BOTTOM", MIRROR_BOTTOM);
@@ -444,6 +453,9 @@ void save_pcb_machine()
     write_real_param("FEED_RATE_PAD_CLEAR_XY", FEED_RATE_PAD_CLEAR_XY); // NEU
     write_real_param("FEED_RATE_PAD_CLEAR_Z", FEED_RATE_PAD_CLEAR_Z);   // NEU
     write_real_param("SPINDLE_PAD_CLEAR_RPM", SPINDLE_PAD_CLEAR_RPM);   // NEU
+    write_real_param("FEED_RATE_COPPER_CLEAR_XY", FEED_RATE_COPPER_CLEAR_XY);
+    write_real_param("FEED_RATE_COPPER_CLEAR_Z", FEED_RATE_COPPER_CLEAR_Z);
+    write_real_param("SPINDLE_COPPER_CLEAR_RPM", SPINDLE_COPPER_CLEAR_RPM);
   }
 }
 
@@ -507,6 +519,7 @@ void save_pcb_gcode_options()
   }
 }
 
+#include "source/copper-clear-profile.h"
 #include "plugin_headers.h"
 
 //
@@ -565,6 +578,7 @@ int Result = dlgDialog("pcb-gcode Setup") {
           dlgCheckBox("Generate top drills  ", GENERATE_TOP_DRILL);
           dlgCheckBox("Generate top stencil ", GENERATE_TOP_STENCIL);
           dlgCheckBox("Generate top pad-clear", GENERATE_TOP_PAD_CLEAR); // NEU
+          dlgCheckBox("Generate top copper-clear", GENERATE_TOP_COPPER_CLEAR);
         }
         dlgStretch(1);
       }
@@ -574,6 +588,7 @@ int Result = dlgDialog("pcb-gcode Setup") {
           dlgCheckBox("Generate bottom drills  ", GENERATE_BOTTOM_DRILL);
           dlgCheckBox("Generate bottom stencil ",GENERATE_BOTTOM_STENCIL);
           dlgCheckBox("Generate bottom pad-clear", GENERATE_BOTTOM_PAD_CLEAR); // NEU
+          dlgCheckBox("Generate bottom copper-clear", GENERATE_BOTTOM_COPPER_CLEAR);
           dlgCheckBox("Mirror ", MIRROR_BOTTOM);
         }
         dlgStretch(1);
@@ -712,7 +727,11 @@ int Result = dlgDialog("pcb-gcode Setup") {
 					dlgCell(5, 1) { 
                         dlgRealEdit(PAD_CLEAR_DEPTH); 
                         dlgLabel(m_uom_suffix, YES); 
-                    } // NEU				  
+                    } // NEU
+                    dlgCell(6, 0) dlgLabel("Copper-Clear Depth");
+                    dlgCell(6, 1) { dlgRealEdit(COPPER_CLEAR_DEPTH); dlgLabel(m_uom_suffix, YES); }
+                    dlgCell(7, 0) dlgLabel("Copper-Clear Overlap");
+                    dlgCell(7, 1) { dlgRealEdit(COPPER_CLEAR_OVERLAP, 0.0, 94.0); dlgLabel("%"); }				  
 				}
 			}
 			dlgGroup("Tool Change") {
@@ -806,6 +825,11 @@ int Result = dlgDialog("pcb-gcode Setup") {
 					dlgCell(6, 4) dlgHBoxLayout { dlgRealEdit(PAD_CLEAR_TOOL_SIZE); 
                         dlgLabel(m_uom_suffix, YES); 
                         } // NEU
+                    dlgCell(7, 0) dlgLabel("Copper-Clear");
+                    dlgCell(7, 1) dlgRealEdit(FEED_RATE_COPPER_CLEAR_XY);
+                    dlgCell(7, 2) dlgRealEdit(FEED_RATE_COPPER_CLEAR_Z);
+                    dlgCell(7, 3) dlgRealEdit(SPINDLE_COPPER_CLEAR_RPM);
+                    dlgCell(7, 4) dlgHBoxLayout { dlgRealEdit(COPPER_CLEAR_TOOL_SIZE); dlgLabel(m_uom_suffix, YES); }
 				}
 				dlgStretch(1);
 			}
