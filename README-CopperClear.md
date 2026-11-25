@@ -82,3 +82,28 @@ CopperClear checks the ideal toolpath against the specified area, not against ot
 The integrated V0.2 functionality, setup and legacy profile switching were verified by the maintainer in EAGLE 7.7; the water-meter carrier board was successfully milled. The clockwise finishing direction was confirmed on the bottom side in V0.2a. The final V0.2b reflex-corner changes were checked in the geometry model and visually in OpenCNCPilot. A physical cut using the final V0.2b/V1.0 contour implementation, and a practical top-side test, have not yet been reported. RF performance improvement of the example board remains to be measured; it is not a claim of this release.
 
 This V1.0 package consolidates V0.2 and V0.2b; no machining logic was changed during packaging. Existing PCB-Gcode copyright and license notices remain in force.
+
+## Practical example
+
+The following example shows a copper-free area
+created underneath and around the Wi-Fi antenna
+of an ESP32-C3 SuperMini module.
+
+### Generated toolpaths in OpenCNCPilot
+
+![CopperClear toolpaths](images/CopperClear/toolpaths.png)
+
+### Rounded perimeter finishing
+
+![Rounded perimeter](images/CopperClear/perimeter-detail.png)
+
+The final clockwise finishing pass follows the
+contour, including rounded transitions at
+concave corners.
+
+### Finished PCB
+
+![Finished PCB](images/CopperClear/finished-pcb.png)
+
+The copper has been removed using a 1.4 mm
+diamond-cut PCB milling bit.

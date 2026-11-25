@@ -7,3 +7,5 @@ This special version, V3.7.2-alpha, is based on John T. Johnsons official versio
 * I fixed the error, that only the first of several holes in the file is drilled with the correct depth, whereas all following holes are only spot drilled. Now alle holes are drilled correctly with the given depth.
 * When generating g-code for only one layer (TOP or BOTTOM), the files for TEXT and MILL are generated for the opposite layer as well.<br>
   Fixed. Only the selected layer files will be generated.
+* Added **CopperClear V1.0**, a feature for selective copper area removal using rectangles and polygons, with automatic tool radius compensation, raster milling and clockwise perimeter finishing.
+  See the [CopperClear documentation](README-CopperClear.md).
