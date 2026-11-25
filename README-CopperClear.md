@@ -91,19 +91,25 @@ of an ESP32-C3 SuperMini module.
 
 ### Generated toolpaths in OpenCNCPilot
 
-![CopperClear toolpaths](images/CopperClear/toolpaths.png)
+<img src="images/CopperClear/toolpaths.png"
+     width="800"
+     alt="Toolpaths in OpenCNCPilot">
 
 ### Rounded perimeter finishing
 
-![Rounded perimeter](images/CopperClear/perimeter-detail.png)
-
+<img src="images/CopperClear/perimeter-detail.png"
+     width="400"
+     alt="Perimeter detail">
+     
 The final clockwise finishing pass follows the
 contour, including rounded transitions at
 concave corners.
 
 ### Finished PCB
 
-![Finished PCB](images/CopperClear/finished-pcb.png)
-
+<img src="images/CopperClear/finished-pcb.png"
+     width="500"
+     alt="Finished PCB with CopperClear area">
+     
 The copper has been removed using a 1.4 mm
 diamond-cut PCB milling bit.
