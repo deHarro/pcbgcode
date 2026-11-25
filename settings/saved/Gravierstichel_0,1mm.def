@@ -1,7 +1,7 @@
 //
 // Default values for generating gcode from a PCB.
 //
-// These settings were last changed with pcb-gcode-setup: 26.08.2024 15:25
+// These settings were last changed with pcb-gcode-setup: 25.11.2026 14:18
 //
 //
 // Changes you make in this file will be overwritten if you use pcb-gcode-setup.
@@ -16,11 +16,15 @@ int GENERATE_TOP_OUTLINES = NO;
 int GENERATE_TOP_DRILL = NO;
 int GENERATE_TOP_FILL = NO;
 int GENERATE_TOP_STENCIL = NO;
+int GENERATE_TOP_PAD_CLEAR = NO;
 
 int GENERATE_BOTTOM_OUTLINES = YES;
 int GENERATE_BOTTOM_DRILL = YES;
 int GENERATE_BOTTOM_FILL = NO;
 int GENERATE_BOTTOM_STENCIL = NO;
+int GENERATE_BOTTOM_PAD_CLEAR = NO;
+real PAD_CLEAR_DEPTH = -0.030000;
+real PAD_CLEAR_TOOL_SIZE = 0.200000;
 
 int MIRROR_BOTTOM = NO;
 int SIMPLE_DRILL_CODE = YES;

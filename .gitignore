@@ -14,4 +14,5 @@ docs/pcbgcode.toc
 *.s#?
 **/optimize_me.txt
 *.bak
+*.jpg
 .vs/pcbgcode/v16/.suo
